@@ -40,6 +40,23 @@ fun Vacancy.toDto() = VacancyDto(
 )
 
 
+data class UserDto(
+    val id: Long,
+    val telegramId: String,
+    val username: String?,
+    val firstName: String?,
+    val lastName: String?
+)
+
+fun User.toDto() = UserDto(
+    id = requireNotNull(this.id),
+    telegramId = this.telegramId,
+    username = this.username,
+    firstName = this.firstName,
+    lastName = this.lastName
+)
+
+
 data class HhVacanciesResponse(
     val items: List<HhVacancyItem>,
     val pages: Int

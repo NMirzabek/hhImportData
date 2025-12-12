@@ -74,3 +74,23 @@ class Vacancy(
     var webUrl: String? = null
 
 ) : BaseEntity()
+
+
+@Entity
+@Table(name = "users")
+data class User(
+
+    @Column(name = "telegram_id", unique = true, nullable = false)
+    val telegramId: String,
+
+    @Column(name = "username")
+    val username: String? = null,
+
+    @Column(name = "first_name")
+    val firstName: String? = null,
+
+    @Column(name = "last_name")
+    val lastName: String? = null
+
+) : BaseEntity()
+

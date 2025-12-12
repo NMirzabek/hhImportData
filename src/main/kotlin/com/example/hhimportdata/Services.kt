@@ -1,12 +1,17 @@
 package com.example.hhimportdata
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import java.security.MessageDigest
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+
 
 @Service
 class VacancyService(
@@ -59,7 +64,6 @@ class VacancyService(
         val saved = vacancyRepository.saveAll(allNewEntities)
         return saved.size
     }
-
 
     private fun toEntity(item: HhVacancyItem): Vacancy {
         val workFormatIds = item.workFormat?.mapNotNull { it.id } ?: emptyList()
@@ -125,5 +129,58 @@ class VacancyService(
             }
             .map { it.toDto() }
             .toList()
+    }
+}
+
+
+@Service
+class UserService(
+    private val userRepository: UserRepository
+) {
+
+    fun findOrCreateFromTelegram(
+        telegramId: String,
+        username: String?,
+        firstName: String?,
+        lastName: String?
+    ): User {
+        val existing = userRepository.findByTelegramId(telegramId)
+        if (existing != null) return existing
+
+        val newUser = User(
+            telegramId = telegramId,
+            username = username,
+            firstName = firstName,
+            lastName = lastName
+        )
+        return userRepository.save(newUser)
+    }
+}
+
+
+@Service
+class TelegramAuthService(
+    @Value("\${telegram.bot-token}")
+    private val botToken: String
+) {
+
+    fun verifyTelegramData(data: Map<String, String>): Boolean {
+        val hash = data["hash"] ?: return false
+
+        val dataCheckString = data.entries
+            .filter { it.key != "hash" }
+            .sortedBy { it.key }
+            .joinToString("\n") { "${it.key}=${it.value}" }
+
+        val secretKey = MessageDigest.getInstance("SHA-256")
+            .digest(botToken.toByteArray(Charsets.UTF_8))
+
+        val mac = Mac.getInstance("HmacSHA256")
+        mac.init(SecretKeySpec(secretKey, "HmacSHA256"))
+        val calcHash = mac.doFinal(dataCheckString.toByteArray(Charsets.UTF_8))
+
+        val calcHex = calcHash.joinToString("") { "%02x".format(it) }
+
+        return calcHex.equals(hash, ignoreCase = true)
     }
 }
